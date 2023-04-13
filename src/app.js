@@ -150,7 +150,7 @@ app.get("/messages", async (req, res) => {
     }
 
     const messages = await db.collection("messages").find(query, options).toArray()
-    res.send(messages)
+    res.status(200).send(messages)
 })
 
 app.post('/status', async (req, res) => {
