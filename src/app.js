@@ -92,6 +92,9 @@ app.get("/participants", async (req, res) => {
 app.post("/messages", async (req , res) => {
     const {to , text, type} = req.body
     const from = req.header("User")
+    if(!from){
+        return res.sendStatus(422)
+    }
 
     //Validação da mensagem com Joi
 
@@ -104,12 +107,12 @@ app.post("/messages", async (req , res) => {
     const validation = messageSchema.validate({to , text , type});
 
     if(validation.error){
-        return res.status(422)
+        return res.sendStatus(422)
     }
 
     const participant = await db.collection("participants").findOne({name:from})
     if(!participant){
-        return res.status(422)
+        return res.sendStatus(422)
     }
 
     const message = {
@@ -166,5 +169,28 @@ app.post('/status', async (req, res) => {
     participant.lastStatus = Date.now();
     return res.status(200).send();
   });
+
+
+  //removendo usuários afk
+// setInterval(async () =>{
+//     const now = Date.now()
+//     const limite = now - 10000
+//     const afks = await db.collection("participants").findMany({lastStatus: {$lt: limite}}).toArray()
+    
+//     if(afks.deletedCount > 0){
+//         afks.forEach(async (participant) => {
+//             const message = {
+//                 from: participant.name,
+//                 to:"Todos",
+//                 text:"sai da sala...",
+//                 type:"status",
+//                 time: dayjs().format("HH:mm:ss")
+//             }
+//             await db.collection("messages").insertOne(message)
+//             await db.collection("participants").remove({participant})
+//         })
+//     }
+
+//   }, 15000)
 
 app.listen(5000)
