@@ -103,7 +103,7 @@ app.post("/messages", async (req , res) => {
 
     const validation = messageSchema.validate({to , text , type});
 
-    if(validation){
+    if(validation.error){
         return res.status(422)
     }
 
@@ -140,6 +140,7 @@ app.get("/messages", async (req, res) => {
             { type: "message" },
         ],
     }
+    
     const options = {}
     if (limit) {
         options.limit = limit
@@ -165,4 +166,5 @@ app.post('/status', async (req, res) => {
     participant.lastStatus = Date.now();
     return res.status(200).send();
   });
+
 app.listen(5000)
