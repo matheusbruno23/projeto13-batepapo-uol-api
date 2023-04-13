@@ -3,10 +3,10 @@ import cors from "cors"
 import { MongoClient, ObjectId } from "mongodb"
 import dotenv from 'dotenv';
 import Joi from "joi";
+import dayjs from "dayjs";
 
 
 const app = express()
-
 app.use(cors())
 app.use(express.json())
 
@@ -73,9 +73,12 @@ app.post("/participants", async (req, res) => {
     }
 });
 
+
 app.get("/participants", async (req, res) => {
     try {
+        //verifica quantidade de usuários cadastrados
       const size = await db.collection("participants").countDocuments({});
+      //retorna um array vazio caso nenhum usuário esteja cadastrado
       if (size === 0) {
         return [];
       }
@@ -84,5 +87,82 @@ app.get("/participants", async (req, res) => {
     } catch (err) {
       res.send(err.message);
     }
+  });
+
+app.post("/messages", async (req , res) => {
+    const {to , text, type} = req.body
+    const from = req.header("User")
+
+    //Validação da mensagem com Joi
+
+    const messageSchema = Joi.object({
+        to: Joi.string().required().not().empty(),
+        text: Joi.string().required().not().empty(),
+        type: Joi.string().required().valid('message', 'private_message')
+    })
+
+    const validation = messageSchema.validate({to , text , type});
+
+    if(validation){
+        return res.status(422)
+    }
+
+    const participant = await db.collection("participants").findOne({name:from})
+    if(!participant){
+        return res.status(422)
+    }
+
+    const message = {
+        from,
+        to,
+        text,
+        type,
+        time: dayjs().format("HH:mm:ss"),
+    }
+
+    await db.collection("messages").insertOne(message)
+    res.sendStatus(201)
+})
+
+app.get("/messages", async (req, res) => {
+    const user = req.header.user
+
+    const limit = Number(req.query.limit)
+    if (isNaN(limit) || limit <= 0) {
+        return res.sendStatus(422)
+    }
+    // Consulta se o usuário pode ver a mensagem
+    const query = {
+        $or: [
+            { to: "Todos" },
+            { to: user },
+            { from: user, type: "private_message" },
+            { type: "message" },
+        ],
+    }
+    const options = {}
+    if (limit) {
+        options.limit = limit
+    }
+
+    const messages = await db.collection("messages").find(query, options).toArray()
+    res.send(messages)
+})
+
+app.post('/status', async (req, res) => {
+    const user = req.headers.user;
+  
+    if (!user) {
+      return res.sendStatus(404);
+    }
+  
+    const participant = await db.collection("participants").find(user);
+  
+    if (!participant) {
+      return res.status(404).send();
+    }
+  
+    participant.lastStatus = Date.now();
+    return res.status(200).send();
   });
 app.listen(5000)
