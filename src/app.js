@@ -33,7 +33,7 @@ mongoClient.connect()
       
         try {
           const result = await db.collection("participants").insertOne(user);
-          const time = new Date(user.lastStatus).toLocaleTimeString();
+          const time = new Date(user.lastStatus).toLocaleTimeString("pt-BR");
           const message = {
             from: user.name,
             to: "Todos",
