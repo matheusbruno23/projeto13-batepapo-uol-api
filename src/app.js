@@ -55,6 +55,7 @@ app.post("/participants", async (req, res) => {
         };
 
         const result = await db.collection("participants").insertOne(user);
+        
         // Formata o horário para a mensagem de entrada
         const time = new Date(user.lastStatus).toLocaleTimeString("pt-BR");
         const message = {
@@ -77,22 +78,22 @@ app.post("/participants", async (req, res) => {
 app.get("/participants", async (req, res) => {
     try {
         //verifica quantidade de usuários cadastrados
-      const size = await db.collection("participants").countDocuments({});
-      //retorna um array vazio caso nenhum usuário esteja cadastrado
-      if (size === 0) {
-        return res.send();
-      }
-      const users = await db.collection("participants").find().toArray();
-      res.send(users);
+        const size = await db.collection("participants").countDocuments({});
+        //retorna um array vazio caso nenhum usuário esteja cadastrado
+        if (size === 0) {
+            return res.send();
+        }
+        const users = await db.collection("participants").find().toArray();
+        res.send(users);
     } catch (err) {
-      res.send(err.message);
+        res.send(err.message);
     }
-  });
+});
 
-app.post("/messages", async (req , res) => {
-    const {to , text, type} = req.body
+app.post("/messages", async (req, res) => {
+    const { to, text, type } = req.body
     const from = req.headers.user
-    if(!from){
+    if (!from) {
         return res.sendStatus(422)
     }
 
@@ -104,14 +105,14 @@ app.post("/messages", async (req , res) => {
         type: Joi.string().required().valid('message', 'private_message')
     })
 
-    const validation = messageSchema.validate({to , text , type});
+    const validation = messageSchema.validate({ to, text, type });
 
-    if(validation.error){
+    if (validation.error) {
         return res.sendStatus(422)
     }
 
-    const participant = await db.collection("participants").findOne({name:from})
-    if(!participant){
+    const participant = await db.collection("participants").findOne({ name: from })
+    if (!participant) {
         return res.sendStatus(422)
     }
 
@@ -143,7 +144,7 @@ app.get("/messages", async (req, res) => {
             { type: "message" },
         ],
     }
-    
+
     const options = {}
     if (limit) {
         options.limit = limit
@@ -156,41 +157,44 @@ app.get("/messages", async (req, res) => {
 app.post('/status', async (req, res) => {
     const user = req.headers.user;
     if (!user) {
-      return res.sendStatus(404);
+        return res.sendStatus(404);
     }
-  
-    const participant = await db.collection("participants").findOne({name: user});
+
+    const participant = await db.collection("participants").findOne({ name: user });
     if (!participant) {
-      return res.sendStatus(404)
+        return res.sendStatus(404)
     }
 
     let newDate = Date.now()
     participant.lastStatus = newDate;
     await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: participant.lastStatus } });
-    console.log(participant.lastStatus)
     return res.sendStatus(200);
-  });
+});
 
 
-  //removendo usuários afk
-//   setInterval(async () => {
-//     const now = Date.now()
-//     const limite = now - 10000
-//     const afks = await db.collection("participants").findMany({ lastStatus: { $lt: limite } }).toArray()
-  
-//     if (afks.length > 0) {
-//       afks.forEach(async (participant) => {
-//         const message = {
-//           from: participant.name,
-//           to: "Todos",
-//           text: "sai da sala...",
-//           type: "status",
-//           time: dayjs().format("HH:mm:ss")
-//         }
-//         await db.collection("messages").insertOne(message)
-//         await db.collection("participants").deleteMany({_id: {$in: afks.map(p => p._id)}})
-//       })
-//     }
-//   }, 15000)
+//removendo usuários afk
+
+setInterval(async () => {
+    const now = Date.now()
+    const tempoLimite = now - 10000
+
+    //pega os usuários afks
+    const usersafk = await db.collection("participants").find({ lastStatus: { $lt: tempoLimite } }).toArray()
+
+    if (usersafk.length > 0) {
+        usersafk.forEach(async (user) => {
+            const message = {
+                from: user.name,
+                to: "Todos",
+                text: "sai da sala...",
+                type: "status",
+                time: dayjs().format("HH:mm:ss")
+            }
+            await db.collection("messages").insertOne(message)
+
+        });
+    }
+    await db.collection("participants").deleteMany({ lastStatus: { $lt: tempoLimite } })
+}, 15000)
 
 app.listen(5000)
