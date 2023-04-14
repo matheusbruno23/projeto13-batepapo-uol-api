@@ -160,13 +160,14 @@ app.post('/status', async (req, res) => {
     }
   
     const participant = await db.collection("participants").findOne({name: user});
-    console.log(participant.lastStatus)
     if (!participant) {
       return res.sendStatus(404)
     }
 
     let newDate = Date.now()
     participant.lastStatus = newDate;
+    await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: participant.lastStatus } });
+    console.log(participant.lastStatus)
     return res.sendStatus(200);
   });
 
