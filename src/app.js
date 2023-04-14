@@ -130,7 +130,7 @@ app.post("/messages", async (req , res) => {
 app.get("/messages", async (req, res) => {
     const user = req.headers.user
 
-    const limit = Number(req.query.limit)
+    const limit = parseInt(req.query.limit)
     if (isNaN(limit) || limit <= 0) {
         return res.sendStatus(422)
     }
@@ -155,19 +155,19 @@ app.get("/messages", async (req, res) => {
 
 app.post('/status', async (req, res) => {
     const user = req.headers.user;
-  
     if (!user) {
       return res.sendStatus(404);
     }
   
-    const participant = await db.collection("participants").find(user);
-  
+    const participant = await db.collection("participants").findOne({name: user});
+    console.log(participant.lastStatus)
     if (!participant) {
-      return res.status(404).send();
+      return res.sendStatus(404)
     }
-  
-    participant.lastStatus = Date.now();
-    return res.status(200).send();
+
+    let newDate = Date.now()
+    participant.lastStatus = newDate;
+    return res.sendStatus(200);
   });
 
 
