@@ -177,7 +177,7 @@ app.post('/status', async (req, res) => {
 setInterval(async () => {
     const now = Date.now()
     const tempoLimite = now - 10000
-
+    const messages = []
     //pega os usuários afks
     const usersafk = await db.collection("participants").find({ lastStatus: { $lt: tempoLimite } }).toArray()
 
@@ -190,11 +190,16 @@ setInterval(async () => {
                 type: "status",
                 time: dayjs().format("HH:mm:ss")
             }
-            await db.collection("messages").insertOne(message)
+            messages.push(message)
 
         });
     }
+    if (messages.length > 0) {
+        await db.collection("messages").insertMany(messages);
+    }
+
     await db.collection("participants").deleteMany({ lastStatus: { $lt: tempoLimite } })
+    
 }, 15000)
 
 app.listen(5000)
