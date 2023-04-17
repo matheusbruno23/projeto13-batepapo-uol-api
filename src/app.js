@@ -81,7 +81,7 @@ app.get("/participants", async (req, res) => {
         const size = await db.collection("participants").countDocuments({});
         //retorna um array vazio caso nenhum usuário esteja cadastrado
         if (size === 0) {
-            return res.send();
+            return res.send([]);
         }
         const users = await db.collection("participants").find().toArray();
         res.send(users);
@@ -199,7 +199,7 @@ setInterval(async () => {
     }
 
     await db.collection("participants").deleteMany({ lastStatus: { $lt: tempoLimite } })
-    
+
 }, 15000)
 
 app.listen(5000)
